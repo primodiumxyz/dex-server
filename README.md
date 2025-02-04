@@ -2,6 +2,8 @@
 
 A TypeScript-based tRPC server for Solana, providing protected API endpoints for building and sponsoring user transactions.
 
+This package is available as a npm package at [@primodiumxyz/dex-server](https://www.npmjs.com/package/@primodiumxyz/dex-server), and the Docker image is available at [ghcr.io/primodiumxyz/dex-server](https://github.com/primodiumxyz/dex-server/pkgs/container/dex-server).
+
 ## Description
 
 The Server offers a set of tRPC endpoints for various operations centered around building user transactions and sponsoring the SOL required for chain execution fees. It uses Fastify as the underlying web server.
