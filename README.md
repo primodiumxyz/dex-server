@@ -1,14 +1,12 @@
-# Tub Server
+# DEX Server
 
-A TypeScript-based tRPC server for the Tub ecosystem, providing protected API endpoints for building and sponsoring user transactions on Solana.
-
-> NOTE: This could be replaced by a future PR with protection with row level security so mutations can be done directly through the GraphQL API.
+A TypeScript-based tRPC server for Solana, providing protected API endpoints for building and sponsoring user transactions.
 
 ## Description
 
-The Tub Server offers a set of tRPC endpoints for various operations centered around building user transactions and sponsoring the SOL required for chain execution fees. It uses Fastify as the underlying web server and integrates with a GraphQL backend for data management.
+The Server offers a set of tRPC endpoints for various operations centered around building user transactions and sponsoring the SOL required for chain execution fees. It uses Fastify as the underlying web server.
 
-The server provides comprehensive token trading functionality including real-time price tracking, automated fee calculations, and transaction sponsorship. It features WebSocket-based streaming for live price updates, iOS push notifications for price tracking, and extensive analytics collection. The system is built with configurability in mind, using Redis for live configuration updates and supporting automated background tasks for maintenance operations.
+The server provides comprehensive token trading functionality including real-time price tracking, automated fee calculations, and transaction sponsorship. It features WebSocket-based streaming for live price updates and iOS push notifications for price tracking. The system is built with configurability in mind, using Redis for live configuration updates and supporting automated background tasks for maintenance operations.
 
 ## Features
 
@@ -18,8 +16,6 @@ The server provides comprehensive token trading functionality including real-tim
 - JWT-based authentication
 - tRPC-based API for type-safe client-server communication
 - WebSocket support for real-time updates
-- Integration with Hasura GraphQL backend
-- Comprehensive analytics tracking system
 - Redis-based configuration management with live updates
 - Automated background tasks via CronService
 - Real-time token price tracking
@@ -27,7 +23,7 @@ The server provides comprehensive token trading functionality including real-tim
 
 ## Usage
 
-To run the Tub Server:
+To run the server:
 
 ```sh
 pnpm start
@@ -53,22 +49,31 @@ const results = await server.registerNewUser.mutate({
 });
 ```
 
-For examples in swift, see [Network.swift](../ios/Tub/Network.swift).
-
 ## Configuration
 
 The server can be configured with the following environment variables:
 
-| Variable              | Description                          | Default                     |
-| --------------------- | ------------------------------------ | --------------------------- |
-| `NODE_ENV`            | Environment (local, dev, test, prod) | `local`                     |
-| `SERVER_HOST`         | Host that the server listens on      | `0.0.0.0`                   |
-| `SERVER_PORT`         | Port that the server listens on      | `8888`                      |
-| `HASURA_ADMIN_SECRET` | Admin secret for Hasura GraphQL      | `password`                  |
-| `HASURA_URL`          | URL of the Hasura endpoint           | `http://localhost:8090`     |
-| `PRIVATE_KEY`         | Private key for solana wallet        | (a default key is provided) |
-| `JWT_SECRET`          | Secret for JWT signing               | `secret`                    |
-| `JUPITER_URL`         | Endpoint for the Jupiter V6 Swap API |                             |
+| Variable                           | Description                              | Default     |
+| ---------------------------------- | ---------------------------------------- | ----------- |
+| `NODE_ENV`                         | Environment (local, dev, test, prod)     | `local`     |
+| `QUICKNODE_ENDPOINT`               | URL of the Quicknode endpoint            |             |
+| `QUICKNODE_TOKEN`                  | Token for the Quicknode endpoint         |             |
+| `JUPITER_URL`                      | Endpoint for the Jupiter V6 Swap API     |             |
+| `SERVER_HOST`                      | Host that the server listens on          | `0.0.0.0`   |
+| `SERVER_PORT`                      | Port that the server listens on          | `8888`      |
+| `REDIS_HOST`                       | Host that the Redis server listens on    | `localhost` |
+| `REDIS_PORT`                       | Port that the Redis server listens on    | `6379`      |
+| `REDIS_PASSWORD`                   | Password for the Redis server            |             |
+| `JWT_SECRET`                       | Secret for JWT signing                   | `secret`    |
+| `COINBASE_CDP_API_KEY_NAME`        | Name of the Coinbase CDP API key         |             |
+| `COINBASE_CDP_API_KEY_PRIVATE_KEY` | Private key for the Coinbase CDP API key |             |
+| `PRIVY_APP_SECRET`                 | Secret for Privy app                     |             |
+| `PRIVY_APP_ID`                     | ID for Privy app                         |             |
+| `FEE_PAYER_PRIVATE_KEY`            | Private key for the fee payer            |             |
+| `TEST_USER_PRIVATE_KEY`            | Private key for the test user            |             |
+| `APPLE_PUSH_KEY_ID`                | Key ID for Apple Push Notifications      |             |
+| `APPLE_PUSH_TEAM_ID`               | Team ID for Apple Push Notifications     |             |
+| `APPLE_AUTHKEY`                    | Auth key for Apple Push Notifications    |             |
 
 The server can be further configured with the following Redis variables in `default-redis-config.json`. Ensure that `TRADE_FEE_RECIPIENT` is set to the address of the account that will receive the trade fees.
 
@@ -77,23 +82,20 @@ The server can be further configured with the following Redis variables in `defa
 To set up the project for development:
 
 1. Ensure all server-related env variables are set.
-1. If Redis is not installed, make sure that `NODE_ENV` is set to `local` in the root `.env` file for Redis to be installed in the `prepare` step of `pnpm install`. Refer to `prepare` script in `./package.json` for details.
-
-1. Install dependencies:
+2. If Redis is not installed, make sure that `NODE_ENV` is set to `local` in the root `.env` file for Redis to be installed in the `prepare` step of `pnpm install`. Refer to `prepare` script in `./package.json` for details.
+3. Install dependencies:
 
    ```bash
    pnpm install
    ```
 
-1. This `server` application depends on `redis-server`. In development, this `server` application is typically run via `pnpm run dev` or `pnpm run dev:fullstack` in the parent repository, which also starts a `redis-server`. The root `package.json` runs `pnpm dev`, which only starts the `nodemon` without Redis.
+4. To run this application in a standalone environment with Redis, run the following which starts both `redis-server` and the `server` application.
 
-   To run this application in a standalone environment with Redis, run the following which starts both `redis-server` and the `server` application.
+```bash
+pnpm dev:standalone
+```
 
-   ```bash
-   pnpm dev:standalone
-   ```
-
-1. For testing:
+5. For testing:
 
    ```bash
    pnpm test
@@ -110,42 +112,42 @@ The server exposes the following tRPC endpoints:
    - Description: Returns the current status of the server
    - Response: `{ status: number }`
 
-1. `getSolUsdPrice`
+2. `getSolUsdPrice`
 
    - Description: Returns the current SOL/USD price
    - Response: `number`
 
-1. `getSolBalance`
+3. `getSolBalance`
 
    - Description: Gets user's SOL balance
    - Response: `number`
 
-1. `getAllTokenBalances`
+4. `getAllTokenBalances`
 
    - Description: Gets all token balances for user
    - Response: Array of token balances
 
-1. `getTokenBalance`
+5. `getTokenBalance`
 
    - Description: Gets balance for specific token
    - Input: `{ tokenMint: string }`
 
-1. `fetchSwap`
+6. `fetchSwap`
 
    - Description: Fetches a constructed swap transaction for the user. This transaction will need to be signed by the user, then sent to the server via `submitSignedTransaction`.
    - Input: `{ buyTokenId: string, sellTokenId: string, sellQuantity: number, slippageBps?: number }`
 
-1. `fetchPresignedSwap`
+7. `fetchPresignedSwap`
 
    - Description: Fetches swap transaction pre-signed by the server's fee payer. This transaction will need to be signed by the user but can be submitted to any Solana node.
    - Input: `{ buyTokenId: string, sellTokenId: string, sellQuantity: number }`
 
-1. `getEstimatedTransferFee`
+8. `getEstimatedTransferFee`
 
    - Description: Gets estimated fee for transferring USDC to a different address
    - Response: Fee estimate in USDC base units
 
-1. `fetchTransferTx`
+9. `fetchTransferTx`
    - Description: Fetches a constructed transfer transaction for the user. This transaction will need to be signed by the user, then sent to the server via `submitSignedTransaction`.
    - Input: `{ toAddress: string, amount: string, tokenId: string }`
 
@@ -156,7 +158,7 @@ The server exposes the following tRPC endpoints:
    - Description: Real-time SOL price updates
    - Response: Stream of price updates
 
-1. `swapStream` [deprecated]
+2. `swapStream` [deprecated]
    - Description: Real-time swap quote updates. Currently deprecated and unused, but could be used in the future for real-time updates.
    - Input: `{ request: { buyTokenId: string, sellTokenId: string, sellQuantity: number } }`
 
@@ -177,51 +179,26 @@ The server exposes the following tRPC endpoints:
    - Description: Stops an active swap stream
    - Response: void
 
-4. `recordTokenPurchase`
-
-   - Description: Records a token purchase event
-   - Input: Client event data with token purchase details
-
-5. `recordTokenSale`
-
-   - Description: Records a token sale event
-   - Input: Client event data with token sale details
-
-6. `recordLoadingTime`
-
-   - Description: Records app loading time metrics
-   - Input: Client event data with timing details
-
-7. `recordAppDwellTime`
-
-   - Description: Records time spent in app
-   - Input: Client event data with dwell time
-
-8. `recordTokenDwellTime`
-
-   - Description: Records time spent viewing a token
-   - Input: Client event data with token and dwell time
-
-9. `startLiveActivity`
+4. `startLiveActivity`
 
    - Description: Starts live price tracking for a token
    - Input: `{ tokenMint: string, tokenPriceUsd: string, deviceToken: string, pushToken: string }`
 
-10. `stopLiveActivity`
-    - Description: Stops live price tracking
-    - Response: `{ success: boolean }`
+5. `stopLiveActivity`
+   - Description: Stops live price tracking
+   - Response: `{ success: boolean }`
 
 ## Testing
 
 Before running tests on the server, first create a `.env.test` file with the appropriate environment variables. See `example.env.test` for an example.
 
-1. In the project root, run the following to start the server:
+1. Run the following to start the server:
 
    ```bash
-   pnpm dev
+   pnpm dev:standalone
    ```
 
-1. Then navigate to `apps/server` and use the following command to run tests:
+2. Then run the following command to start tests:
 
    ```bash
    pnpm test
@@ -229,14 +206,14 @@ Before running tests on the server, first create a `.env.test` file with the app
 
 ### Testing Transactions Setup
 
-You can test transactions by running the `tub-service.test.ts` file.
+You can test transactions by running the `service.test.ts` file.
 
 1. You may need to manually remove any `.skip` flags from the tests you want to run. These are placed there to prevent the tests from being run on every commit.
-1. Ensure that your `FEE_PAYER` has a few dollars worth of SOL in it to pay for the chain fees. If this is not met, the test transactions will fail.
-1. Ensure that your `FEE_PAYER` has an existing USDC ATA that has a rent-exempt balance (currently 0.002039 SOL). If this is not met, the test transactions will fail.
-1. Optionally, you can change the token being traded in the tests by editing `MEMECOIN_MAINNET_PUBLIC_KEY` in `src/constants/tokens.ts`.
-1. Check that `pnpm dev` is still running, then run the test file in `apps/server` with the following command:
+2. Ensure that your `FEE_PAYER` has a few dollars worth of SOL in it to pay for the chain fees. If this is not met, the test transactions will fail.
+3. Ensure that your `FEE_PAYER` has an existing USDC ATA that has a rent-exempt balance (currently 0.002039 SOL). If this is not met, the test transactions will fail.
+4. Optionally, you can change the token being traded in the tests by editing `MEMECOIN_MAINNET_PUBLIC_KEY` in `src/constants/tokens.ts`.
+5. Check that the dev server is still running, then run the test file with the following command:
 
    ```bash
-   pnpm test tub-service.test.ts
+   pnpm test service.test.ts
    ```
