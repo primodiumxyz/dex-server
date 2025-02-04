@@ -1,0 +1,17 @@
+{
+  "extends": "./.tsconfigs/bundler/dom/library-monorepo.json",
+  "compilerOptions": {
+    "composite": false,
+    "moduleResolution": "Bundler",
+    "outDir": "dist",
+    "rootDir": "./../",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@bin/*": ["./bin/*"],
+      "@solana/spl-token": ["./node_modules/@solana/spl-token"]
+    }
+  },
+  "include": ["src/**/*", "bin/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

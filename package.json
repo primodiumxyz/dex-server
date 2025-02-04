@@ -1,34 +1,41 @@
 {
-  "name": "@tub/server",
-  "version": "0.0.1",
-  "description": "A TypeScript-based tRPC server, providing protected API endpoints for building and sponsoring user transactions on Solana, and recording user analytics.",
+  "name": "@primodiumxyz/dex-server",
+  "version": "0.0.0-semantically-released",
+  "description": "A TypeScript-based tRPC server, providing protected API endpoints for building and sponsoring user transactions on Solana.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/primodiumxyz/tub",
-    "directory": "./apps/server"
+    "url": "https://github.com/primodiumxyz/dex-server"
   },
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./dist/index.js"
   },
-  "types": "src/index.ts",
+  "main": "./dist/index.js",
+  "bin": {
+    "local-dex-server": "./bin/index.js"
+  },
+  "types": "dist/index.js",
   "files": [
-    "src"
+    "dist",
+    "Dockerfile",
+    ".dockerignore"
   ],
   "scripts": {
-    "lint": "eslint .",
+    "build": "tsup",
+    "clean": "rm -rf dist",
     "dev": "pnpm dev:nodemon",
     "dev:standalone": "run-pty % pnpm dev:redis % pnpm dev:nodemon",
     "dev:nodemon": "sh -c 'read -r _ < /tmp/redis-ready && echo \"Starting server...\" && nodemon'",
     "dev:redis": "sh -c 'mkfifo /tmp/redis-ready 2>/dev/null; redis-server & while ! redis-cli ping > /dev/null 2>&1; do echo \"Waiting for Redis...\" && sleep 0.1; done && echo \"Redis ready - flushing...\" && redis-cli flushall && echo \"Redis flushed!\" && echo \"ready\" > /tmp/redis-ready && wait'",
+    "lint": "eslint .",
     "start": "tsx bin/index",
     "types:dev": "tsc --watch",
     "types:test": "tsc --noEmit --skipLibCheck",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "prepare": "dotenvx run -f ./../../.env --quiet -- sh -c '[ \"$NODE_ENV\" != \"local\" ] && exit 0; [ $(uname) = 'Darwin' ] && brew install redis || apt-get install -y redis-server;'"
+    "prepare": "dotenvx run -f .env --quiet -- sh -c '[ \"$NODE_ENV\" = production ] || brew install redis || apt-get install -y redis-server'"
   },
   "dependencies": {
     "@fastify/compress": "^6.5.0",
@@ -40,7 +47,6 @@
     "@solana/web3.js": "^1.95.4",
     "@trpc/client": "10.34.0",
     "@trpc/server": "10.34.0",
-    "@tub/gql": "workspace:*",
     "async-mutex": "^0.5.0",
     "bs58": "^6.0.0",
     "debug": "^4.3.4",
@@ -60,6 +66,7 @@
     "axios": "^1.7.7",
     "nodemon": "^3.1.7",
     "prettier": "^3.3.3",
+    "tsup": "^8.3.6",
     "tsx": "^3.12.6",
     "vite-tsconfig-paths": "^4.2.0",
     "vitest": "2.1.4"
