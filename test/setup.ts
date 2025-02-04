@@ -1,6 +1,3 @@
-import { resolve } from "path";
-import { config } from "dotenv";
-
 import { env } from "@bin/server";
 
 declare module "vitest" {
@@ -12,11 +9,6 @@ declare module "vitest" {
 
 export default async function () {
   console.log("Setting up test environment");
-
-  // Load test environment variables first
-  config({
-    path: resolve(__dirname, "../.env.test"),
-  });
 
   // Throw error if FEE_PAYER_PRIVATE_KEY is not set
   if (!env.FEE_PAYER_PRIVATE_KEY) {

@@ -8,7 +8,6 @@ import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import { NodeHTTPCreateContextFnOptions } from "@trpc/server/adapters/node-http";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import bs58 from "bs58";
-import { config } from "dotenv";
 import fastify from "fastify";
 
 import { parseEnv } from "@bin/parseEnv";
@@ -16,8 +15,6 @@ import { AppRouter, createAppRouter } from "@/createAppRouter";
 import { JupiterService } from "@/services/JupiterService";
 import { Service } from "@/services/Service";
 import { config as configUtils } from "@/utils/config";
-
-config({ path: "../../.env" });
 
 export const env = parseEnv();
 
