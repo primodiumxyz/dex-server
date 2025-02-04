@@ -3,7 +3,7 @@ import { Connection, Keypair, PublicKey, TransactionMessage, VersionedTransactio
 import { AxiosError } from "axios";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { env } from "@bin/tub-server";
+import { env } from "@bin/server";
 import { MEMECOIN_MAINNET_PUBLIC_KEY, SOL_MAINNET_PUBLIC_KEY, USDC_MAINNET_PUBLIC_KEY } from "@/constants/tokens";
 import { ConfigService } from "@/services/ConfigService";
 import { JupiterService } from "@/services/JupiterService";

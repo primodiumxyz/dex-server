@@ -1,25 +1,25 @@
 import { createJupiterApiClient } from "@jup-ag/api";
+import { createClient as createGqlClient } from "@primodiumxyz/dex-graphql";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { Connection, Keypair, VersionedMessage, VersionedTransaction } from "@solana/web3.js";
-import { createClient as createGqlClient } from "@tub/gql";
 import bs58 from "bs58";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { env } from "@bin/tub-server";
+import { env } from "@bin/server";
 import { MEMECOIN_MAINNET_PUBLIC_KEY, SOL_MAINNET_PUBLIC_KEY, USDC_MAINNET_PUBLIC_KEY } from "@/constants/tokens";
 import { ConfigService } from "@/services/ConfigService";
 import { FeeService } from "@/services/FeeService";
 import { JupiterService } from "@/services/JupiterService";
+import { Service } from "@/services/Service";
 import { TransactionService } from "@/services/TransactionService";
 import { TransferService } from "@/services/TransferService";
-import { TubService } from "@/services/TubService";
 import { PrebuildSwapResponse, SubmitSignedTransactionResponse } from "@/types";
 
 import { MockPrivyClient } from "./helpers/MockPrivyClient";
 
 // Skip entire suite in CI, because it would perform a live transaction each deployment
-(env.CI ? describe.skip : describe)("TubService Integration Test", () => {
-  let tubService: TubService;
+(env.CI ? describe.skip : describe)("Service Integration Test", () => {
+  let service: Service;
   let userKeypair: Keypair;
   let mockJwtToken: string;
   let connection: Connection;
@@ -54,7 +54,7 @@ import { MockPrivyClient } from "./helpers/MockPrivyClient";
       // Create mock Privy client with our test wallet
       const mockPrivyClient = new MockPrivyClient(userKeypair.publicKey.toString());
 
-      tubService = await TubService.create(
+      service = await Service.create(
         gqlClient,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         mockPrivyClient as any,
@@ -97,25 +97,25 @@ import { MockPrivyClient } from "./helpers/MockPrivyClient";
 
   describe("getSolBalance", () => {
     it("should get the user's balance", async () => {
-      const balance = await tubService.getSolBalance(mockJwtToken);
+      const balance = await service.getSolBalance(mockJwtToken);
       expect(balance).toBeDefined();
       expect(balance.balance).toBeGreaterThan(0);
     });
 
     it("should get the user's usdc balance", async () => {
-      const balance = await tubService.getTokenBalance(mockJwtToken, USDC_MAINNET_PUBLIC_KEY.toString());
+      const balance = await service.getTokenBalance(mockJwtToken, USDC_MAINNET_PUBLIC_KEY.toString());
       expect(balance).toBeDefined();
       expect(balance.balance).toBeGreaterThan(0);
     });
 
     it("should get the user's token balances", async () => {
-      const { tokenBalances } = await tubService.getAllTokenBalances(mockJwtToken);
+      const { tokenBalances } = await service.getAllTokenBalances(mockJwtToken);
       expect(tokenBalances).toBeDefined();
       expect(tokenBalances.length).toBeGreaterThan(0);
     });
 
     it("should get the user's usdc balance", async () => {
-      const { tokenBalances } = await tubService.getAllTokenBalances(mockJwtToken);
+      const { tokenBalances } = await service.getAllTokenBalances(mockJwtToken);
       if (tokenBalances.length === 0) {
         console.log("No token balances found, skipping test");
         return;
@@ -127,7 +127,7 @@ import { MockPrivyClient } from "./helpers/MockPrivyClient";
         return;
       }
 
-      const balance = await tubService.getTokenBalance(mockJwtToken, token);
+      const balance = await service.getTokenBalance(mockJwtToken, token);
       expect(balance).toBeDefined();
       expect(balance.balance).toEqual(tokenBalances[0]?.balanceToken);
     });
@@ -220,7 +220,7 @@ import { MockPrivyClient } from "./helpers/MockPrivyClient";
         // Convert raw signature to base64
         const base64Signature = Buffer.from(userSignature!).toString("base64");
 
-        result = await tubService.signAndSendTransaction(
+        result = await service.signAndSendTransaction(
           mockJwtToken,
           base64Signature,
           swapResponse.transactionMessageBase64, // Send original unsigned transaction
@@ -246,7 +246,7 @@ import { MockPrivyClient } from "./helpers/MockPrivyClient";
       // Get the constructed swap transaction
       console.log("\nGetting 1 USDC to SOL swap transaction...");
 
-      const swapResponse = await tubService.fetchSwap(mockJwtToken, {
+      const swapResponse = await service.fetchSwap(mockJwtToken, {
         buyTokenId: SOL_MAINNET_PUBLIC_KEY.toString(),
         sellTokenId: USDC_MAINNET_PUBLIC_KEY.toString(),
         sellQuantity: 1e6 / 1000, // 0.001 USDC
@@ -259,7 +259,7 @@ import { MockPrivyClient } from "./helpers/MockPrivyClient";
     describe("MEMECOIN swaps", () => {
       it("should complete a USDC to MEMECOIN swap", async () => {
         // Get swap instructions
-        const swapResponse = await tubService.fetchSwap(mockJwtToken, {
+        const swapResponse = await service.fetchSwap(mockJwtToken, {
           buyTokenId: MEMECOIN_MAINNET_PUBLIC_KEY.toString(),
           sellTokenId: USDC_MAINNET_PUBLIC_KEY.toString(),
           sellQuantity: 1e6, // 1 USDC
@@ -287,7 +287,7 @@ import { MockPrivyClient } from "./helpers/MockPrivyClient";
           slippageBps: undefined,
         };
         console.log("MEMECOIN swap:", swap);
-        const swapResponse = await tubService.fetchSwap(mockJwtToken, swap);
+        const swapResponse = await service.fetchSwap(mockJwtToken, swap);
 
         await executeTx(swapResponse);
       }, 11000);
@@ -322,7 +322,7 @@ import { MockPrivyClient } from "./helpers/MockPrivyClient";
           slippageBps: undefined,
         };
         console.log("Memecoin swap:", swap);
-        const swapResponse = await tubService.fetchSwap(mockJwtToken, swap);
+        const swapResponse = await service.fetchSwap(mockJwtToken, swap);
         // delay for 1 second to emulate latency
         await new Promise((resolve) => setTimeout(resolve, 1000));
 

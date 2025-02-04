@@ -88,36 +88,3 @@ export interface CodexTokenResponse {
   token: string;
   expiry: string;
 }
-
-// Analytics types
-export interface ClientEvent {
-  userAgent: string;
-  userWallet: string;
-  source?: string;
-  errorDetails?: string;
-  buildVersion?: string;
-}
-
-export type TokenPurchaseOrSaleEvent = ClientEvent & {
-  tokenMint: string;
-  tokenAmount: string;
-  tokenPriceUsd: string;
-  tokenDecimals: number;
-};
-
-export type LoadingTimeEvent = ClientEvent & {
-  identifier: string;
-  timeElapsedMs: number;
-  attemptNumber: number;
-  totalTimeMs: number;
-  averageTimeMs: number;
-};
-
-export type AppDwellTimeEvent = ClientEvent & {
-  dwellTimeMs: number;
-};
-
-export type TokenDwellTimeEvent = ClientEvent & {
-  tokenMint: string;
-  dwellTimeMs: number;
-};

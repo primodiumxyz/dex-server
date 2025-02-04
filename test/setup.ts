@@ -1,7 +1,7 @@
 import { resolve } from "path";
 import { config } from "dotenv";
 
-import { env } from "@bin/tub-server";
+import { env } from "@bin/server";
 
 declare module "vitest" {
   export interface ProvidedContext {

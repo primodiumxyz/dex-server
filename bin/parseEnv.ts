@@ -9,8 +9,6 @@ const commonSchema = z.object({
   HASURA_URL: z.string().default("http://localhost:8090"),
   HASURA_ADMIN_SECRET: z.string().default("password"),
   JWT_SECRET: z.string().default("secret"),
-  COINBASE_CDP_API_KEY_NAME: z.string().default(""),
-  COINBASE_CDP_API_KEY_PRIVATE_KEY: z.string().default(""),
   CI: z.coerce.boolean().default(false),
   TEST_USER_PRIVATE_KEY: z.string().default("set TEST_USER_PRIVATE_KEY in .env before running server tests"),
 

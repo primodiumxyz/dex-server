@@ -3,14 +3,14 @@ import { observable } from "@trpc/server/observable";
 import { Subject } from "rxjs";
 import { z } from "zod";
 
-import { TubService } from "@/services/TubService";
-import { ClientEvent, PrebuildSwapResponse, UserPrebuildSwapRequest } from "@/types";
+import { Service } from "@/services/Service";
+import { PrebuildSwapResponse, UserPrebuildSwapRequest } from "@/types";
 
 /**
  * Context type for the tRPC router containing required services and auth
  */
 export type AppContext = {
-  tubService: TubService;
+  service: Service;
   jwtToken: string;
 };
 
@@ -26,19 +26,6 @@ const swapRequestSchema = z.object({
 }) satisfies z.ZodType<UserPrebuildSwapRequest>;
 
 /**
- * Zod schema for validating client events
- *
- * @see ClientEvent
- */
-const clientEventSchema = z.object({
-  userWallet: z.string(),
-  userAgent: z.string(),
-  source: z.string().optional(),
-  errorDetails: z.string().optional(),
-  buildVersion: z.string().optional(),
-}) satisfies z.ZodType<ClientEvent>;
-
-/**
  * Creates and configures the main tRPC router with all API endpoints.
  *
  * @returns A configured tRPC router with all procedures
@@ -52,7 +39,7 @@ export function createAppRouter() {
      * @returns {Promise<{ status: number }>} Object containing status code 200 if server is healthy
      */
     getStatus: t.procedure.query(({ ctx }) => {
-      return ctx.tubService.getStatus();
+      return ctx.service.getStatus();
     }),
 
     /**
@@ -61,7 +48,7 @@ export function createAppRouter() {
      * @returns {Promise<number>} Current SOL price in USD
      */
     getSolUsdPrice: t.procedure.query(async ({ ctx }) => {
-      return await ctx.tubService.getSolUsdPrice();
+      return await ctx.service.getSolUsdPrice();
     }),
 
     /**
@@ -74,7 +61,7 @@ export function createAppRouter() {
         const onPrice = (price: number) => {
           emit.next(price);
         };
-        const cleanup = ctx.tubService.subscribeSolPrice(onPrice);
+        const cleanup = ctx.service.subscribeSolPrice(onPrice);
         return () => {
           cleanup();
         };
@@ -96,7 +83,7 @@ export function createAppRouter() {
         let subject: Subject<PrebuildSwapResponse> | undefined;
         let cleanup: (() => void) | undefined;
 
-        ctx.tubService
+        ctx.service
           .startSwapStream(ctx.jwtToken, input.request)
           .then((s) => {
             if (!s) {
@@ -154,7 +141,7 @@ export function createAppRouter() {
         return observable((emit) => {
           let subject = null;
 
-          ctx.tubService
+          ctx.service
             .startSwapStream(ctx.jwtToken, input)
             .then((s) => {
               if (!s) {
@@ -180,7 +167,7 @@ export function createAppRouter() {
             });
 
           return () => {
-            ctx.tubService.stopSwapStream(ctx.jwtToken).catch(console.error);
+            ctx.service.stopSwapStream(ctx.jwtToken).catch(console.error);
           };
         });
       }),
@@ -201,7 +188,7 @@ export function createAppRouter() {
         }),
       )
       .mutation(async ({ ctx, input }) => {
-        return await ctx.tubService.updateSwapRequest(ctx.jwtToken, input);
+        return await ctx.service.updateSwapRequest(ctx.jwtToken, input);
       }),
 
     /**
@@ -220,7 +207,7 @@ export function createAppRouter() {
         }),
       )
       .mutation(async ({ ctx, input }) => {
-        return await ctx.tubService.signAndSendTransaction(ctx.jwtToken, input.signature, input.base64Transaction);
+        return await ctx.service.signAndSendTransaction(ctx.jwtToken, input.signature, input.base64Transaction);
       }),
 
     /**
@@ -242,7 +229,7 @@ export function createAppRouter() {
         }),
       )
       .query(async ({ ctx, input }) => {
-        return await ctx.tubService.fetchSwap(ctx.jwtToken, input);
+        return await ctx.service.fetchSwap(ctx.jwtToken, input);
       }),
 
     /**
@@ -262,7 +249,7 @@ export function createAppRouter() {
         }),
       )
       .query(async ({ ctx, input }) => {
-        return await ctx.tubService.fetchPresignedSwap(ctx.jwtToken, input);
+        return await ctx.service.fetchPresignedSwap(ctx.jwtToken, input);
       }),
 
     /**
@@ -271,124 +258,8 @@ export function createAppRouter() {
      * @returns {Promise<void>}
      */
     stopSwapStream: t.procedure.mutation(async ({ ctx }) => {
-      await ctx.tubService.stopSwapStream(ctx.jwtToken);
+      await ctx.service.stopSwapStream(ctx.jwtToken);
     }),
-
-    /**
-     * Records analytics for a token purchase
-     *
-     * @param tokenMint - Token mint address
-     * @param tokenAmount - Amount purchased in base units
-     * @param tokenPriceUsd - Token price in USD at time of purchase
-     * @param tokenDecimals - Number of decimal places for token
-     * @param userWallet - User's wallet address
-     * @param userAgent - User's browser/device info
-     * @param source - Optional source of purchase
-     * @param buildVersion - Optional app build version
-     */
-    recordTokenPurchase: t.procedure
-      .input(
-        z.object({
-          ...clientEventSchema.shape,
-          tokenMint: z.string(),
-          tokenAmount: z.string(),
-          tokenPriceUsd: z.string(),
-          tokenDecimals: z.number(),
-        }),
-      )
-      .mutation(async ({ ctx, input }) => {
-        return await ctx.tubService.recordTokenPurchase(input, ctx.jwtToken);
-      }),
-
-    /**
-     * Records analytics for a token sale
-     *
-     * @param tokenMint - Token mint address
-     * @param tokenAmount - Amount sold in base units
-     * @param tokenPriceUsd - Token price in USD at time of sale
-     * @param tokenDecimals - Number of decimal places for token
-     * @param userWallet - User's wallet address
-     * @param userAgent - User's browser/device info
-     * @param source - Optional source of sale
-     * @param buildVersion - Optional app build version
-     */
-    recordTokenSale: t.procedure
-      .input(
-        z.object({
-          ...clientEventSchema.shape,
-          tokenMint: z.string(),
-          tokenAmount: z.string(),
-          tokenPriceUsd: z.string(),
-          tokenDecimals: z.number(),
-        }),
-      )
-      .mutation(async ({ ctx, input }) => {
-        return await ctx.tubService.recordTokenSale(input, ctx.jwtToken);
-      }),
-
-    /**
-     * Records loading time metrics for analytics
-     *
-     * @param identifier - The identifier for what was loaded
-     * @param timeElapsedMs - Time taken for this attempt
-     * @param attemptNumber - Which attempt number this was
-     * @param totalTimeMs - Total time across all attempts
-     * @param averageTimeMs - Average time per attempt
-     * @param userWallet - User's wallet address
-     * @param userAgent - User's browser/device info
-     */
-    recordLoadingTime: t.procedure
-      .input(
-        z.object({
-          ...clientEventSchema.shape,
-          identifier: z.string(),
-          timeElapsedMs: z.number(),
-          attemptNumber: z.number(),
-          totalTimeMs: z.number(),
-          averageTimeMs: z.number(),
-        }),
-      )
-      .mutation(async ({ ctx, input }) => {
-        return await ctx.tubService.recordLoadingTime(input, ctx.jwtToken);
-      }),
-
-    /**
-     * Records app dwell time for analytics
-     *
-     * @param dwellTimeMs - Time spent in the app in milliseconds
-     * @param userWallet - User's wallet address
-     * @param userAgent - User's browser/device info
-     */
-    recordAppDwellTime: t.procedure
-      .input(
-        z.object({
-          ...clientEventSchema.shape,
-          dwellTimeMs: z.number(),
-        }),
-      )
-      .mutation(async ({ ctx, input }) => {
-        return await ctx.tubService.recordAppDwellTime(input, ctx.jwtToken);
-      }),
-
-    /**
-     * Records token dwell time for analytics
-     *
-     * @param tokenMint - Token being viewed
-     * @param dwellTimeMs - Time spent viewing the token
-     * @param userWallet - User's wallet address
-     * @param userAgent - User's browser/device info
-     */
-    recordTokenDwellTime: t.procedure
-      .input(
-        z.object({
-          ...clientEventSchema.shape,
-          tokenMint: z.string(),
-          dwellTimeMs: z.number(),
-        }),
-      )
-      .mutation(async ({ ctx, input }) => {
-        return await ctx.tubService.recordTokenDwellTime(input, ctx.jwtToken);
-      }),
 
     /**
      * Gets the user's SOL balance
@@ -396,7 +267,7 @@ export function createAppRouter() {
      * @returns {Promise<number>} Balance in lamports
      */
     getSolBalance: t.procedure.query(async ({ ctx }) => {
-      return await ctx.tubService.getSolBalance(ctx.jwtToken);
+      return await ctx.service.getSolBalance(ctx.jwtToken);
     }),
 
     /**
@@ -405,7 +276,7 @@ export function createAppRouter() {
      * @returns {Promise<{ mint: string; amount: string }[]>} Array of token balances
      */
     getAllTokenBalances: t.procedure.query(async ({ ctx }) => {
-      return await ctx.tubService.getAllTokenBalances(ctx.jwtToken);
+      return await ctx.service.getAllTokenBalances(ctx.jwtToken);
     }),
 
     /**
@@ -421,7 +292,7 @@ export function createAppRouter() {
         }),
       )
       .query(async ({ ctx, input }) => {
-        return await ctx.tubService.getTokenBalance(ctx.jwtToken, input.tokenMint);
+        return await ctx.service.getTokenBalance(ctx.jwtToken, input.tokenMint);
       }),
 
     /**
@@ -430,7 +301,7 @@ export function createAppRouter() {
      * @returns {Promise<number>} Estimated fee in lamports
      */
     getEstimatedTransferFee: t.procedure.query(async ({ ctx }) => {
-      return await ctx.tubService.getEstimatedTransferFee(ctx.jwtToken);
+      return await ctx.service.getEstimatedTransferFee(ctx.jwtToken);
     }),
 
     /**
@@ -450,7 +321,7 @@ export function createAppRouter() {
         }),
       )
       .query(async ({ ctx, input }) => {
-        return await ctx.tubService.fetchTransferTx(ctx.jwtToken, input);
+        return await ctx.service.fetchTransferTx(ctx.jwtToken, input);
       }),
 
     /**
@@ -472,7 +343,7 @@ export function createAppRouter() {
         }),
       )
       .mutation(async ({ ctx, input }) => {
-        await ctx.tubService.startLiveActivity(ctx.jwtToken, input);
+        await ctx.service.startLiveActivity(ctx.jwtToken, input);
         return { success: true };
       }),
 
@@ -482,7 +353,7 @@ export function createAppRouter() {
      * @returns {Promise<{ success: boolean }>} Success status
      */
     stopLiveActivity: t.procedure.mutation(async ({ ctx }) => {
-      await ctx.tubService.stopLiveActivity(ctx.jwtToken);
+      await ctx.service.stopLiveActivity(ctx.jwtToken);
       return { success: true };
     }),
   });

@@ -8,6 +8,8 @@ The Server offers a set of tRPC endpoints for various operations centered around
 
 The server provides comprehensive token trading functionality including real-time price tracking, automated fee calculations, and transaction sponsorship. It features WebSocket-based streaming for live price updates and iOS push notifications for price tracking. The system is built with configurability in mind, using Redis for live configuration updates and supporting automated background tasks for maintenance operations.
 
+For price tracking to be enabled, the `HASURA_URL` and `HASURA_ADMIN_SECRET` environment variables must be set, and point to a running instance of the [DEX GraphQL package](https://github.com/primodiumxyz/dex-indexer-stack/tree/main/packages/gql). If you would like to use this feature, [you will need to run the DEX Indexer stack](https://github.com/primodiumxyz/dex-indexer-stack/).
+
 ## Features
 
 - Transaction building and sponsorship
@@ -53,27 +55,27 @@ const results = await server.registerNewUser.mutate({
 
 The server can be configured with the following environment variables:
 
-| Variable                           | Description                              | Default     |
-| ---------------------------------- | ---------------------------------------- | ----------- |
-| `NODE_ENV`                         | Environment (local, dev, test, prod)     | `local`     |
-| `QUICKNODE_ENDPOINT`               | URL of the Quicknode endpoint            |             |
-| `QUICKNODE_TOKEN`                  | Token for the Quicknode endpoint         |             |
-| `JUPITER_URL`                      | Endpoint for the Jupiter V6 Swap API     |             |
-| `SERVER_HOST`                      | Host that the server listens on          | `0.0.0.0`   |
-| `SERVER_PORT`                      | Port that the server listens on          | `8888`      |
-| `REDIS_HOST`                       | Host that the Redis server listens on    | `localhost` |
-| `REDIS_PORT`                       | Port that the Redis server listens on    | `6379`      |
-| `REDIS_PASSWORD`                   | Password for the Redis server            |             |
-| `JWT_SECRET`                       | Secret for JWT signing                   | `secret`    |
-| `COINBASE_CDP_API_KEY_NAME`        | Name of the Coinbase CDP API key         |             |
-| `COINBASE_CDP_API_KEY_PRIVATE_KEY` | Private key for the Coinbase CDP API key |             |
-| `PRIVY_APP_SECRET`                 | Secret for Privy app                     |             |
-| `PRIVY_APP_ID`                     | ID for Privy app                         |             |
-| `FEE_PAYER_PRIVATE_KEY`            | Private key for the fee payer            |             |
-| `TEST_USER_PRIVATE_KEY`            | Private key for the test user            |             |
-| `APPLE_PUSH_KEY_ID`                | Key ID for Apple Push Notifications      |             |
-| `APPLE_PUSH_TEAM_ID`               | Team ID for Apple Push Notifications     |             |
-| `APPLE_AUTHKEY`                    | Auth key for Apple Push Notifications    |             |
+| Variable                | Description                           | Default     |
+| ----------------------- | ------------------------------------- | ----------- |
+| `NODE_ENV`              | Environment (local, dev, test, prod)  | `local`     |
+| `SERVER_HOST`           | Host that the server listens on       | `0.0.0.0`   |
+| `SERVER_PORT`           | Port that the server listens on       | `8888`      |
+| `REDIS_HOST`            | Host that the Redis server listens on | `localhost` |
+| `REDIS_PORT`            | Port that the Redis server listens on | `6379`      |
+| `REDIS_PASSWORD`        | Password for the Redis server         |             |
+| `QUICKNODE_ENDPOINT`    | URL of the Quicknode endpoint         |             |
+| `QUICKNODE_TOKEN`       | Token for the Quicknode endpoint      |             |
+| `JUPITER_URL`           | Endpoint for the Jupiter V6 Swap API  |             |
+| `HASURA_URL`            | URL of the Hasura endpoint            |             |
+| `HASURA_ADMIN_SECRET`   | Admin secret for the Hasura endpoint  |             |
+| `JWT_SECRET`            | Secret for JWT signing                | `secret`    |
+| `PRIVY_APP_SECRET`      | Secret for Privy app                  |             |
+| `PRIVY_APP_ID`          | ID for Privy app                      |             |
+| `FEE_PAYER_PRIVATE_KEY` | Private key for the fee payer         |             |
+| `TEST_USER_PRIVATE_KEY` | Private key for the test user         |             |
+| `APPLE_PUSH_KEY_ID`     | Key ID for Apple Push Notifications   |             |
+| `APPLE_PUSH_TEAM_ID`    | Team ID for Apple Push Notifications  |             |
+| `APPLE_AUTHKEY`         | Auth key for Apple Push Notifications |             |
 
 The server can be further configured with the following Redis variables in `default-redis-config.json`. Ensure that `TRADE_FEE_RECIPIENT` is set to the address of the account that will receive the trade fees.
 

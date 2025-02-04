@@ -16,5 +16,6 @@
     "moduleDetection": "force",
     "isolatedModules": true,
     "verbatimModuleSyntax": false
-  }
+  },
+  "include": ["src/**/*", "bin/**/*", "test/**/*"]
 }

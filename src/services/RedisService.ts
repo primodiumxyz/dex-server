@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 
-import { env } from "@bin/tub-server";
+import { env } from "@bin/server";
 
 /**
  * Service for managing Redis connection and operations Implements singleton pattern to ensure single Redis connection

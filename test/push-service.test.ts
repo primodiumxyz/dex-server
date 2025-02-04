@@ -1,7 +1,7 @@
-import { createClient as createGqlClient, GqlClient } from "@tub/gql";
+import { createClient as createGqlClient, GqlClient } from "@primodiumxyz/dex-graphql";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { env } from "@bin/tub-server";
+import { env } from "@bin/server";
 import { MEMECOIN_MAINNET_PUBLIC_KEY } from "@/constants/tokens";
 import { PushService } from "@/services/ApplePushService";
 import { Config, ConfigService } from "@/services/ConfigService";

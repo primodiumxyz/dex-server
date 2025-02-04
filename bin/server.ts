@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 import fastifyWebsocket from "@fastify/websocket";
 import { ConfigurationParameters, createJupiterApiClient } from "@jup-ag/api";
+import { createClient as createGqlClient, GqlClient } from "@primodiumxyz/dex-graphql";
 import { PrivyClient } from "@privy-io/server-auth";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import { NodeHTTPCreateContextFnOptions } from "@trpc/server/adapters/node-http";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
-import { createClient as createGqlClient } from "@tub/gql";
 import bs58 from "bs58";
 import { config } from "dotenv";
 import fastify from "fastify";
@@ -14,7 +14,7 @@ import fastify from "fastify";
 import { parseEnv } from "@bin/parseEnv";
 import { AppRouter, createAppRouter } from "@/createAppRouter";
 import { JupiterService } from "@/services/JupiterService";
-import { TubService } from "@/services/TubService";
+import { Service } from "@/services/Service";
 import { config as configUtils } from "@/utils/config";
 
 config({ path: "../../.env" });
@@ -72,23 +72,23 @@ export const start = async () => {
     };
 
     const jupiterQuoteApi = createJupiterApiClient(jupiterConfig);
-
-    // Initialize JupiterService
     const jupiterService = new JupiterService(connection, jupiterQuoteApi);
 
-    if (!env.HASURA_URL && env.NODE_ENV === "production") {
-      throw new Error("HASURA_URL is not set");
+    let gqlClient: GqlClient["db"] | undefined;
+    if (env.NODE_ENV !== "production" || (env.NODE_ENV === "production" && env.HASURA_URL)) {
+      gqlClient = (
+        await createGqlClient({
+          url: env.NODE_ENV !== "production" ? "http://localhost:8090/v1/graphql" : `${env.HASURA_URL}/v1/graphql`,
+          hasuraAdminSecret: env.NODE_ENV !== "production" ? "password" : env.HASURA_ADMIN_SECRET,
+        })
+      ).db;
+    } else {
+      console.warn("HASURA_URL is not set, price tracking will be disabled");
     }
-    const gqlClient = (
-      await createGqlClient({
-        url: env.NODE_ENV !== "production" ? "http://localhost:8090/v1/graphql" : `${env.HASURA_URL}/v1/graphql`,
-        hasuraAdminSecret: env.NODE_ENV !== "production" ? "password" : env.HASURA_ADMIN_SECRET,
-      })
-    ).db;
 
     const privy = new PrivyClient(env.PRIVY_APP_ID, env.PRIVY_APP_SECRET);
 
-    const tubService = await TubService.create(gqlClient, privy, jupiterService);
+    const service = await Service.create(gqlClient, privy, jupiterService);
 
     // @see https://trpc.io/docs/server/adapters/fastify
     server.register(fastifyTRPCPlugin<AppRouter>, {
@@ -97,7 +97,7 @@ export const start = async () => {
       trpcOptions: {
         router: createAppRouter(),
         createContext: async (opt) => ({
-          tubService,
+          service,
           jwtToken: getBearerToken(opt.req) ?? "",
         }),
       },
@@ -111,7 +111,7 @@ export const start = async () => {
       router: createAppRouter(),
       // @ts-expect-error IncomingMessage is not typed
       createContext: async (opt: NodeHTTPCreateContextFnOptions<IncomingMessage, WebSocket>) => ({
-        tubService,
+        service,
         jwtToken: getBearerToken(opt.req) ?? "",
       }),
     });

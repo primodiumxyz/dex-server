@@ -1,12 +1,11 @@
+import { GqlClient } from "@primodiumxyz/dex-graphql";
 import { PrivyClient } from "@privy-io/server-auth";
 import { getAccount, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Connection, Keypair, PublicKey, VersionedTransaction } from "@solana/web3.js";
-import { GqlClient } from "@tub/gql";
 import bs58 from "bs58";
 
-import { env } from "@bin/tub-server";
+import { env } from "@bin/server";
 import { TOKEN_ACCOUNT_SIZE, TOKEN_PROGRAM_PUBLIC_KEY, USDC_MAINNET_PUBLIC_KEY } from "@/constants/tokens";
-import { AnalyticsService } from "@/services/AnalyticsService";
 import { PushService } from "@/services/ApplePushService";
 import { AuthService } from "@/services/AuthService";
 import { Config, ConfigService } from "@/services/ConfigService";
@@ -18,13 +17,9 @@ import { TransactionService } from "@/services/TransactionService";
 import { TransferService } from "@/services/TransferService";
 import {
   ActiveSwapRequest,
-  AppDwellTimeEvent,
-  LoadingTimeEvent,
   PrebuildSignedSwapResponse,
   PrebuildSwapResponse,
   SubmitSignedTransactionResponse,
-  TokenDwellTimeEvent,
-  TokenPurchaseOrSaleEvent,
   TransactionType,
   UserPrebuildSwapRequest,
 } from "@/types";
@@ -43,18 +38,17 @@ import { deriveTokenAccounts } from "@/utils/tokenAccounts";
  * - Push notifications
  * - User authentication
  */
-export class TubService {
+export class Service {
   private connection!: Connection;
   private swapService!: SwapService;
   private authService!: AuthService;
   private transactionService!: TransactionService;
   private feeService!: FeeService;
-  private analyticsService!: AnalyticsService;
   private transferService!: TransferService;
   private pushService!: PushService;
 
   /**
-   * Creates a new instance of TubService
+   * Creates a new instance of Service
    *
    * @private
    * @param gqlClient - GraphQL client for database operations
@@ -62,25 +56,25 @@ export class TubService {
    * @param jupiterService - JupiterService instance for transaction handling
    */
   private constructor(
-    private readonly gqlClient: GqlClient["db"],
+    private readonly gqlClient: GqlClient["db"] | undefined,
     private readonly privy: PrivyClient,
     private readonly jupiterService: JupiterService,
   ) {}
 
   /**
-   * Factory method to create a fully initialized TubService
+   * Factory method to create a fully initialized Service
    *
    * @param gqlClient - GraphQL client for database operations
    * @param privy - Privy client for authentication
    * @param jupiterService - JupiterService instance for transaction handling
-   * @returns Promise resolving to initialized TubService instance
+   * @returns Promise resolving to initialized Service instance
    */
   static async create(
-    gqlClient: GqlClient["db"],
+    gqlClient: GqlClient["db"] | undefined,
     privy: PrivyClient,
     jupiterService: JupiterService,
-  ): Promise<TubService> {
-    const service = new TubService(gqlClient, privy, jupiterService);
+  ): Promise<Service> {
+    const service = new Service(gqlClient, privy, jupiterService);
     await service.initialize();
     return service;
   }
@@ -103,7 +97,6 @@ export class TubService {
     this.transactionService = new TransactionService(this.connection, feePayerKeypair);
     this.feeService = new FeeService({ tradeFeeRecipient: validatedTradeFeeRecipient }, this.jupiterService);
     this.swapService = new SwapService(this.jupiterService, this.transactionService, this.feeService);
-    this.analyticsService = new AnalyticsService(this.gqlClient);
     this.transferService = new TransferService(
       this.connection,
       feePayerKeypair,
@@ -112,7 +105,7 @@ export class TubService {
     );
     this.pushService = new PushService({ gqlClient: this.gqlClient });
 
-    new CronService(this.gqlClient).startPeriodicTasks();
+    new CronService({ gqlClient: this.gqlClient }).startPeriodicTasks();
   }
 
   /**
@@ -157,70 +150,6 @@ export class TubService {
    */
   getStatus(): { status: number } {
     return { status: 200 };
-  }
-
-  /* -------------------------------------------------------------------------- */
-  /*                              Analytics Methods                               */
-  /* -------------------------------------------------------------------------- */
-
-  /**
-   * Records a token purchase event
-   *
-   * @param event - Token purchase event details
-   * @param jwtToken - User's JWT token
-   * @returns Promise resolving to event ID
-   */
-  async recordTokenPurchase(event: TokenPurchaseOrSaleEvent, jwtToken: string): Promise<string> {
-    const { walletPublicKey } = await this.authService.getUserContext(jwtToken);
-    return this.analyticsService.recordTokenPurchase(event, walletPublicKey.toBase58());
-  }
-
-  /**
-   * Records a token sale event
-   *
-   * @param event - Token sale event details
-   * @param jwtToken - User's JWT token
-   * @returns Promise resolving to event ID
-   */
-  async recordTokenSale(event: TokenPurchaseOrSaleEvent, jwtToken: string): Promise<string> {
-    const { walletPublicKey } = await this.authService.getUserContext(jwtToken);
-    return this.analyticsService.recordTokenSale(event, walletPublicKey.toBase58());
-  }
-
-  /**
-   * Records app loading time metrics
-   *
-   * @param event - Loading time event details
-   * @param jwtToken - User's JWT token
-   * @returns Promise resolving to event ID
-   */
-  async recordLoadingTime(event: LoadingTimeEvent, jwtToken: string): Promise<string> {
-    const { walletPublicKey } = await this.authService.getUserContext(jwtToken);
-    return this.analyticsService.recordLoadingTime(event, walletPublicKey.toBase58());
-  }
-
-  /**
-   * Records app dwell time metrics
-   *
-   * @param event - App dwell time event details
-   * @param jwtToken - User's JWT token
-   * @returns Promise resolving to event ID
-   */
-  async recordAppDwellTime(event: AppDwellTimeEvent, jwtToken: string): Promise<string> {
-    const { walletPublicKey } = await this.authService.getUserContext(jwtToken);
-    return this.analyticsService.recordAppDwellTime(event, walletPublicKey.toBase58());
-  }
-
-  /**
-   * Records token dwell time metrics
-   *
-   * @param event - Token dwell time event details
-   * @param jwtToken - User's JWT token
-   * @returns Promise resolving to event ID
-   */
-  async recordTokenDwellTime(event: TokenDwellTimeEvent, jwtToken: string): Promise<string> {
-    const { walletPublicKey } = await this.authService.getUserContext(jwtToken);
-    return this.analyticsService.recordTokenDwellTime(event, walletPublicKey.toBase58());
   }
 
   /* -------------------------------------------------------------------------- */

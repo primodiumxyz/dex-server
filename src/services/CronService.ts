@@ -1,4 +1,4 @@
-import { GqlClient } from "@tub/gql";
+import { GqlClient } from "@primodiumxyz/dex-graphql";
 
 import { config } from "@/utils/config";
 
@@ -8,12 +8,16 @@ import { config } from "@/utils/config";
  * Handles scheduled operations like token statistics updates
  */
 export class CronService {
+  private gqlClient: GqlClient["db"] | undefined;
+
   /**
    * Creates a new CronService instance
    *
    * @param gql - GraphQL client for database operations
    */
-  constructor(private gql: GqlClient["db"]) {}
+  constructor(args: { gqlClient: GqlClient["db"] | undefined }) {
+    this.gqlClient = args.gqlClient;
+  }
 
   /**
    * Updates rolling statistics for token refresh operations
@@ -21,7 +25,9 @@ export class CronService {
    * @throws Error if statistics update fails
    */
   async refreshTokenRollingStats30Min(): Promise<void> {
-    const result = await this.gql.RefreshTokenRollingStats30MinMutation();
+    if (!this.gqlClient) return;
+
+    const result = await this.gqlClient.RefreshTokenRollingStats30MinMutation();
     if (result.error) throw new Error(result.error.message);
     if (!result.data?.api_refresh_token_rolling_stats_30min?.success)
       throw new Error("Failed to refresh token rolling stats 30min");
@@ -33,6 +39,8 @@ export class CronService {
    * Currently manages token rolling statistics updates
    */
   async startPeriodicTasks(): Promise<void> {
+    if (!this.gqlClient) return;
+
     const { REFRESH_TOKEN_ROLLING_STATS_30MIN_INTERVAL_SECONDS } = await config();
 
     setInterval(async () => {

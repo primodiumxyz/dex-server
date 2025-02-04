@@ -1,9 +1,9 @@
 import http2 from "http2";
-import { GqlClient } from "@tub/gql";
+import { GqlClient } from "@primodiumxyz/dex-graphql";
 import { Mutex } from "async-mutex";
 import jwt from "jsonwebtoken";
 
-import { env } from "@bin/tub-server";
+import { env } from "@bin/server";
 import { Config } from "@/services/ConfigService";
 import { config } from "@/utils/config";
 
@@ -27,7 +27,7 @@ type PushItem = {
  */
 export class PushService {
   private pushRegistry: Map<string, PushItem> = new Map();
-  private gqlClient: GqlClient["db"];
+  private gqlClient: GqlClient["db"] | undefined;
 
   private session: http2.ClientHttp2Session | null = null;
   private subscriptions: Map<string, { subscription: { unsubscribe: () => void }; subCount: number }> = new Map();
@@ -43,7 +43,7 @@ export class PushService {
    * @param args.gqlClient - GraphQL client for price subscriptions
    * @param args.overrides - Optional configuration overrides
    */
-  constructor(args: { gqlClient: GqlClient["db"]; overrides?: Partial<Config> }) {
+  constructor(args: { gqlClient: GqlClient["db"] | undefined; overrides?: Partial<Config> }) {
     this.gqlClient = args.gqlClient;
 
     if (!env.APPLE_AUTHKEY) {
@@ -73,6 +73,11 @@ export class PushService {
    * @param tokenMint - Token mint address to subscribe to
    */
   private beginTokenSubscription(tokenMint: string) {
+    if (!this.gqlClient) {
+      console.warn("No Hasura URL was provided, cannot subscribe to token price updates");
+      return;
+    }
+
     if (this.subscriptions.has(tokenMint)) {
       console.log(`Incrementing subscription count for token: ${tokenMint}`);
       this.subscriptions.get(tokenMint)!.subCount++;
@@ -125,6 +130,11 @@ export class PushService {
     userId: string,
     input: { tokenMint: string; tokenPriceUsd: string; deviceToken: string; pushToken: string },
   ) {
+    if (!this.gqlClient) {
+      console.warn("No Hasura URL was provided, cannot subscribe to token price updates");
+      return;
+    }
+
     const release = await this.activityMutex.acquire();
     const existing = this.pushRegistry.get(userId);
     try {

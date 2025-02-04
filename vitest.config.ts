@@ -10,5 +10,9 @@ export default defineConfig({
     testTimeout: 10000,
     setupFiles: ["./test/setup.ts"],
     reporters: ["default", "hanging-process"],
+    alias: {
+      "@/*": "./src/*",
+      "@bin/*": "./bin/*",
+    },
   },
 });
