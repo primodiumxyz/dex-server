@@ -35,7 +35,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "prepare": "dotenvx run -f .env --quiet -- sh -c '[ \"$NODE_ENV\" = production ] || brew install redis || apt-get install -y redis-server'"
+    "prepare": "dotenvx run -f .env --quiet -- sh -c '[ \"$NODE_ENV\" = production || \"$NODE_ENV\" = test ] || brew install redis || apt-get install -y redis-server'"
   },
   "dependencies": {
     "@fastify/compress": "^6.5.0",
