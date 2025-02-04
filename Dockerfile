@@ -29,22 +29,14 @@ ENV SERVER_PORT=8080
 RUN corepack enable
 WORKDIR /app
 
-# Copy root package.json, pnpm-workspace.yaml, and pnpm-lock.yaml
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-# Copy .tsconfigs/bundler/dom/library-monorepo.json and reproduce correct path
-COPY .tsconfigs/bundler/dom/library-monorepo.json /app/.tsconfigs/bundler/dom/library-monorepo.json
-
-# Copy the server app
-COPY apps/server ./apps/server
-
-# Copy any shared packages
-COPY packages ./packages
+# Copy the entire root directory
+COPY . ./
 
 # Install dependencies without dev dependencies and skip prepare scripts
 RUN pnpm install --frozen-lockfile
 
 # Set working directory to the server app
-WORKDIR /app/apps/server
+WORKDIR /app
 
 EXPOSE $SERVER_PORT
 
