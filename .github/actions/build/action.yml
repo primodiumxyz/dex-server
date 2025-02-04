@@ -1,5 +1,5 @@
-name: Build Packages
-description: Install dependencies and build packages
+name: Build Package
+description: Install dependencies and build package
 runs:
   using: composite
   steps:
